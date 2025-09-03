@@ -180,7 +180,8 @@ jobs:
           echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
           
           # Generate APK filename with version info
-          APK_FILENAME="ai-edge-gallery-debug-${{ steps.release_info.outputs.commit_sha }}.apk"
+          COMMIT_SHA="${{ steps.release_info.outputs.commit_sha }}"
+          APK_FILENAME="ai-edge-gallery-debug-${COMMIT_SHA}.apk"
           echo "apk_filename=$APK_FILENAME" >> $GITHUB_OUTPUT
       
       - name: Prepare APK for release
@@ -193,12 +194,26 @@ jobs:
           echo "Original APK path: $APK_PATH"
           echo "Target APK filename: $APK_FILENAME"
           
-          # Copy APK to a predictable location with the desired filename
-          cp "$APK_PATH" "./$APK_FILENAME"
+          # Copy APK to repository root with the desired filename
+          cp "$APK_PATH" "$GITHUB_WORKSPACE/$APK_FILENAME"
           
-          echo "APK copied to: ./$APK_FILENAME"
+          echo "APK copied to: $GITHUB_WORKSPACE/$APK_FILENAME"
           echo "Verifying APK file exists:"
-          ls -la "./$APK_FILENAME"
+          ls -la "$GITHUB_WORKSPACE/$APK_FILENAME"
+
+      - name: Verify APK for release
+        run: |
+          echo "=== Verifying APK before release ==="
+          echo "Working directory: $(pwd)"
+          echo "Repository root: $GITHUB_WORKSPACE"
+          APK_FILENAME="${{ steps.find_apk.outputs.apk_filename }}"
+          echo "Expected APK filename: $APK_FILENAME"
+          echo "Checking if APK exists at repository root:"
+          ls -la "$GITHUB_WORKSPACE/$APK_FILENAME" || echo "APK not found at repository root"
+          echo "All files in repository root:"
+          ls -la "$GITHUB_WORKSPACE/"
+          echo "All APK files in repository:"
+          find "$GITHUB_WORKSPACE" -name "*.apk" -type f || echo "No APK files found in repository"
 
       - name: Create Release and Upload APK
         uses: softprops/action-gh-release@v2
