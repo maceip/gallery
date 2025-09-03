@@ -1,1 +1,1 @@
-# Google AI Edge Gallery (Android)
+# Kontext AI Personalization Agent (Android)
