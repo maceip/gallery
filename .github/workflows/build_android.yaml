@@ -52,24 +52,35 @@ jobs:
       - name: Build Debug APK
         run: |
           echo "=== Building Debug APK ==="
+          echo "Current working directory: $(pwd)"
+          echo "Repository root: $GITHUB_WORKSPACE"
+          
           ./gradlew assembleDebug --info
           
           echo "=== Build completed, checking outputs ==="
           echo "Gradle build status: $?"
           
-          # List all build outputs
+          # List all build outputs with absolute paths
           echo "Build directories created:"
           find . -name "build" -type d
           
           echo "APK search in expected location:"
           ls -la app/build/outputs/apk/debug/ || echo "Debug APK directory not found"
-      
-      - name: Upload APK as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          
+          # Also check from repository root perspective
+          echo "Checking from repository root:"
+          ls -la $GITHUB_WORKSPACE/Android/src/app/build/outputs/apk/debug/ || echo "APK directory not found from repo root"
+          
+          # Copy APK to a predictable location for later steps
+          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+            echo "Copying APK to predictable location..."
+            mkdir -p $GITHUB_WORKSPACE/apk-output
+            cp app/build/outputs/apk/debug/app-debug.apk $GITHUB_WORKSPACE/apk-output/
+            echo "APK copied to: $GITHUB_WORKSPACE/apk-output/app-debug.apk"
+            ls -la $GITHUB_WORKSPACE/apk-output/
+          else
+            echo "APK not found for copying"
+          fi
       
       - name: Generate release info
         id: release_info
@@ -105,6 +116,9 @@ jobs:
           echo "Looking for any APK files:"
           find . -name "*.apk" -type f
           echo ""
+          echo "Checking predictable APK location:"
+          ls -la $GITHUB_WORKSPACE/apk-output/ || echo "Predictable APK location not found"
+          echo ""
           echo "Contents of app directory:"
           ls -la app/ || echo "app directory not found"
           echo ""
@@ -123,10 +137,22 @@ jobs:
           # Try multiple possible locations for the APK
           APK_PATH=""
           
-          # Standard build location
-          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+          # Check predictable location first
+          if [ -f "$GITHUB_WORKSPACE/apk-output/app-debug.apk" ]; then
+            APK_PATH="$GITHUB_WORKSPACE/apk-output/app-debug.apk"
+            echo "Found APK at predictable location: $APK_PATH"
+          fi
+          
+          # Fallback to standard build location (relative to working directory)
+          if [ -z "$APK_PATH" ] && [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
             APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
             echo "Found APK at standard location: $APK_PATH"
+          fi
+          
+          # Try absolute path from repository root  
+          if [ -z "$APK_PATH" ] && [ -f "$GITHUB_WORKSPACE/Android/src/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            APK_PATH="$GITHUB_WORKSPACE/Android/src/app/build/outputs/apk/debug/app-debug.apk"
+            echo "Found APK at absolute path: $APK_PATH"
           fi
           
           # Last resort: search everywhere
