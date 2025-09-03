@@ -16,9 +16,9 @@
 
 <resources>
   <!-- TODO(jingjin): Add translation support when i18n is ready. -->
-  <string name="app_name" translatable="false">Google AI Edge Gallery</string>
-  <string name="app_name_first_part" translatable="false">Google AI</string>
-  <string name="app_name_second_part" translatable="false">Edge Gallery</string>
+  <string name="app_name" translatable="false">Kontext Agent</string>
+  <string name="app_name_first_part" translatable="false">Kontext</string>
+  <string name="app_name_second_part" translatable="false">Agent</string>
   <string name="app_intro" translatable="false">Explore a world of personalized agents on your phone, by kontext.dev</string>
   <string name="best_overall" translatable="false">Best overall</string>
   <plurals name="model_list_number_of_models_available" translatable="false">
