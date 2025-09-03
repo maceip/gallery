@@ -50,7 +50,19 @@ jobs:
         run: chmod +x ./gradlew
       
       - name: Build Debug APK
-        run: ./gradlew assembleDebug
+        run: |
+          echo "=== Building Debug APK ==="
+          ./gradlew assembleDebug --info
+          
+          echo "=== Build completed, checking outputs ==="
+          echo "Gradle build status: $?"
+          
+          # List all build outputs
+          echo "Build directories created:"
+          find . -name "build" -type d
+          
+          echo "APK search in expected location:"
+          ls -la app/build/outputs/apk/debug/ || echo "Debug APK directory not found"
       
       - name: Generate release info
         id: release_info
@@ -73,14 +85,60 @@ jobs:
           echo "commit_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
           echo "build_date=$CURRENT_DATE" >> $GITHUB_OUTPUT
       
+      - name: Debug build output structure
+        run: |
+          echo "=== Debugging build output structure ==="
+          echo "Current working directory: $(pwd)"
+          echo "Contents of current directory:"
+          ls -la
+          echo ""
+          echo "Looking for build directories:"
+          find . -name "build" -type d
+          echo ""
+          echo "Looking for any APK files:"
+          find . -name "*.apk" -type f
+          echo ""
+          echo "Contents of app directory:"
+          ls -la app/ || echo "app directory not found"
+          echo ""
+          if [ -d "app/build" ]; then
+            echo "Contents of app/build:"
+            find app/build -type f -name "*.apk" || echo "No APK files found in app/build"
+          else
+            echo "app/build directory does not exist"
+          fi
+
       - name: Find Debug APK
         id: find_apk
         run: |
-          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
-          if [ -z "$APK_PATH" ]; then
-            echo "Error: Debug APK not found!"
-            exit 1
+          echo "=== Searching for APK files ==="
+          
+          # Try multiple possible locations for the APK
+          APK_PATH=""
+          
+          # Standard location
+          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+            APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+            echo "Found APK at standard location: $APK_PATH"
+          else
+            echo "APK not found at standard location: app/build/outputs/apk/debug/app-debug.apk"
+            
+            # Search for any APK files
+            APK_PATH=$(find . -name "*.apk" -type f | head -1)
+            if [ -n "$APK_PATH" ]; then
+              echo "Found APK at: $APK_PATH"
+            else
+              echo "No APK files found anywhere!"
+              echo "Build output structure:"
+              find . -name "build" -type d -exec ls -la {} \; || echo "No build directories found"
+              echo "Complete directory tree:"
+              find . -type d | head -20
+              echo "All files in project:"
+              find . -type f | grep -E '\.(apk|aab)$' || echo "No APK or AAB files found"
+              exit 1
+            fi
           fi
+          
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           
           # Get APK size for release notes
@@ -91,8 +149,26 @@ jobs:
           APK_FILENAME="ai-edge-gallery-debug-${{ steps.release_info.outputs.commit_sha }}.apk"
           echo "apk_filename=$APK_FILENAME" >> $GITHUB_OUTPUT
       
+      - name: Prepare APK for release
+        if: success() && steps.find_apk.outputs.apk_path != ''
+        run: |
+          echo "=== Preparing APK for release ==="
+          APK_PATH="${{ steps.find_apk.outputs.apk_path }}"
+          APK_FILENAME="${{ steps.find_apk.outputs.apk_filename }}"
+          
+          echo "Original APK path: $APK_PATH"
+          echo "Target APK filename: $APK_FILENAME"
+          
+          # Copy APK to a predictable location with the desired filename
+          cp "$APK_PATH" "./$APK_FILENAME"
+          
+          echo "APK copied to: ./$APK_FILENAME"
+          echo "Verifying APK file exists:"
+          ls -la "./$APK_FILENAME"
+
       - name: Create Release and Upload APK
         uses: softprops/action-gh-release@v2
+        if: success() && steps.find_apk.outputs.apk_path != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -100,7 +176,8 @@ jobs:
           name: ${{ steps.release_info.outputs.release_name }}
           draft: false
           prerelease: true
-          files: ${{ steps.find_apk.outputs.apk_path }}
+          files: |
+            ${{ steps.find_apk.outputs.apk_filename }}
           body: |
             ## 🚀 AI Edge Gallery Debug Build
             
@@ -116,6 +193,32 @@ jobs:
             3. Install the APK on your Android device (API 31+)
             
             **Note:** This is a debug build intended for testing purposes.
+            
+            ---
+            *Auto-generated by GitHub Actions*
+
+      - name: Create Release without APK (fallback)
+        uses: softprops/action-gh-release@v2
+        if: failure() || steps.find_apk.outputs.apk_path == ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.release_info.outputs.tag_name }}
+          name: "${{ steps.release_info.outputs.release_name }} (Build Failed)"
+          draft: false
+          prerelease: true
+          body: |
+            ## ❌ AI Edge Gallery Debug Build (Failed)
+            
+            **Build Information:**
+            - 📅 Built on: ${{ steps.release_info.outputs.build_date }}
+            - 📝 Commit: `${{ steps.release_info.outputs.commit_sha }}`
+            - 💬 Message: ${{ steps.release_info.outputs.commit_msg }}
+            
+            **Error:** APK file could not be found after build completion.
+            
+            This release contains only source code. The APK build may have failed or 
+            the APK output path may be incorrect in the workflow.
             
             ---
             *Auto-generated by GitHub Actions*
