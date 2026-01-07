@@ -1,6 +1,7 @@
 [versions]
 agp = "8.8.2"
 kotlin = "2.1.0"
+composeMultiplatform = "1.7.1"
 coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -14,6 +15,7 @@ serializationJson = "1.7.3"
 materialIconExtended = "1.7.8"
 workRuntime = "2.10.0"
 dataStore = "1.1.7"
+datastorePreferences = "1.1.1"
 gson = "2.12.1"
 lifecycleProcess = "2.8.7"
 protobuf = "0.9.5"
@@ -24,13 +26,21 @@ mediapipeTasksGenai = "0.10.27"
 mediapipeTasksImageGenerator = "0.10.21"
 commonmark = "1.0.0-alpha02"
 richtext = "1.0.0-alpha02"
-playServicesTfliteJava = "16.4.0"
-playServicesTfliteGpu= "16.4.0"
+# TFLite from TensorFlow GitHub (to replace Google Play Services version)
+tflite = "2.16.1"
 cameraX = "1.4.2"
 netOpenidAppauth = "0.11.1"
 splashscreen = "1.2.0-beta01"
 hilt = "2.57"
 hiltNavigation = "1.2.0"
+# Koin for KMP DI
+koin = "4.0.1"
+koinCompose = "4.0.1"
+# Ktor for KMP networking
+ktor = "3.0.3"
+# Kotlinx libraries for KMP
+kotlinxCoroutines = "1.9.0"
+kotlinxDatetime = "0.6.1"
 ossLicenses = "0.10.6"
 playServicesOssLicenses = "17.1.0"
 googleService = "4.4.3"
@@ -66,9 +76,10 @@ mediapipe-tasks-genai = { group = "com.google.mediapipe", name = "tasks-genai", 
 mediapipe-tasks-imagegen = { group = "com.google.mediapipe", name = "tasks-vision-image-generator", version.ref = "mediapipeTasksImageGenerator" }
 commonmark = { group = "com.halilibo.compose-richtext", name = "richtext-commonmark", version.ref = "commonmark" }
 richtext = { group = "com.halilibo.compose-richtext", name = "richtext-ui-material3", version.ref = "richtext" }
-tflite = { group = "com.google.android.gms", name = "play-services-tflite-java", version.ref = "playServicesTfliteJava" }
-tflite-gpu = { group = "com.google.android.gms", name = "play-services-tflite-gpu", version.ref = "playServicesTfliteGpu" }
-tflite-support = { group = "com.google.android.gms", name = "play-services-tflite-support", version.ref = "playServicesTfliteJava" }
+# TFLite direct from TensorFlow (GitHub alternative to Google Play Services)
+tflite = { group = "org.tensorflow", name = "tensorflow-lite", version.ref = "tflite" }
+tflite-gpu = { group = "org.tensorflow", name = "tensorflow-lite-gpu", version.ref = "tflite" }
+tflite-support = { group = "org.tensorflow", name = "tensorflow-lite-support", version.ref = "tflite" }
 camerax-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraX"}
 camerax-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "cameraX"}
 camerax-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraX"}
@@ -87,10 +98,32 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 
+# Koin for Dependency Injection (KMP compatible)
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koinCompose" }
+
+# Ktor for networking (KMP compatible)
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+
+# Kotlinx libraries for KMP
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
+
+# DataStore for KMP
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastorePreferences" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "serializationPlugin" }
 protobuf = {id = "com.google.protobuf", version.ref = "protobuf"}
 hilt-application = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
